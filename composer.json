@@ -1,0 +1,14 @@
+{
+  "name": "web3auth/login",
+  "description": "Web3 Wallet Authentication System",
+  "type": "project",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Web3Auth\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.0"
+  }
+}

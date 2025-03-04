@@ -1,44 +1,38 @@
 /**
- * sWeb3App - Web3 wallet connection helper class
+ * Web3App - Web3 wallet connection helper class
  */
-class sWeb3App {
+class Web3App {
   constructor() {
     this.web3 = null;
-    this.isWeb3Available = false;
   }
 
-  async setWeb3Wallet() {
+  async connect() {
     try {
-      // Check if Web3 provider exists
-      if (window.ethereum) {
-        this.web3 = new Web3(window.ethereum);
-        this.isWeb3Available = true;
-      } else if (window.web3) {
-        this.web3 = new Web3(window.web3.currentProvider);
-        this.isWeb3Available = true;
-      } else {
+      if (!window.ethereum) {
         return {
           error: 1,
           errorMessage: "Web3 wallet not found. Please install MetaMask, Trust Wallet, or Coinbase Wallet."
         };
       }
 
+      this.web3 = new Web3(window.ethereum);
+
       // Request account access
-      const RequestAccountsData = await this.requestAccounts();
-      if (RequestAccountsData.error !== 0) {
-        return RequestAccountsData;
+      const accounts = await this.requestAccounts();
+      if (accounts.error !== 0) {
+        return accounts;
       }
 
       // Get signature for authentication
-      const checkSignData = await this.checkSign(RequestAccountsData.requestAccountsArr[0]);
-      if (checkSignData.error !== 0) {
-        return checkSignData;
+      const signature = await this.getSignature(accounts.accounts[0]);
+      if (signature.error !== 0) {
+        return signature;
       }
 
       return {
         error: 0,
-        RequestAccountsData: RequestAccountsData,
-        checkSignData: checkSignData
+        accounts: accounts.accounts,
+        signature: signature.data
       };
     } catch (error) {
       return {
@@ -61,7 +55,7 @@ class sWeb3App {
 
       return {
         error: 0,
-        requestAccountsArr: accounts
+        accounts: accounts
       };
     } catch (error) {
       return {
@@ -71,24 +65,22 @@ class sWeb3App {
     }
   }
 
-  async checkSign(address) {
+  async getSignature(address) {
     try {
-      // Create a unique message for signing
       const timestamp = new Date().getTime();
       const domain = window.location.hostname;
-      const signMessage = `Sign this message to authenticate on ${domain} at ${timestamp}`;
+      const message = `Sign this message to authenticate on ${domain} at ${timestamp}`;
 
-      // Request signature from user
-      const signResult = await window.ethereum.request({
+      const signature = await window.ethereum.request({
         method: 'personal_sign',
-        params: [signMessage, address]
+        params: [message, address]
       });
 
       return {
         error: 0,
-        SignData: {
-          signMessage: signMessage,
-          signResult: signResult
+        data: {
+          message: message,
+          result: signature
         }
       };
     } catch (error) {
