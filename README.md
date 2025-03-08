@@ -1,12 +1,14 @@
-# Web3 Wallet Authentication
+# Web3 Wallet Authentication with PHP
 
-A lightweight PHP system for authenticating users with Web3 wallets like MetaMask, Trust Wallet, and Coinbase Wallet.
+A modern PHP application for Web3 wallet authentication and balance checking using Ethers.js.
 
 ## Features
 
-- Authentication with Web3 wallets
+- Authentication with Web3 wallets (MetaMask, Trust Wallet, Coinbase Wallet)
+- Secure sign/verify process using Ethereum signatures
 - Session management
-- Simple user dashboard
+- Wallet balance checking with Ethers.js
+- Responsive UI
 
 ## Requirements
 
@@ -17,11 +19,29 @@ A lightweight PHP system for authenticating users with Web3 wallets like MetaMas
 ## Installation
 
 1. Clone the repository
-2. Run `composer install`
-3. Configure your web server to point to the `public` directory
+
+2. Install dependencies
+   ```
+   composer install
+   ```
+
+3. Create and configure environment variables
+   ```
+   cp .env.example .env
+   ```
+
+4. Configure your web server to point to the `public` directory or use PHP's built-in server:
+   ```
+   php -S localhost:8000 -t public
+   ```
 
 ## Usage
 
-1. Navigate to the homepage
+1. Navigate to the homepage in your browser
 2. Click "Login with Web3 Wallet"
-3. Connect your wallet and sign the message
+3. Connect your wallet when prompted and sign the authentication message
+4. View your wallet balance and network information on the dashboard
+
+## License
+
+MIT

@@ -2,52 +2,105 @@
 
 declare(strict_types=1);
 
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Factory\AppFactory;
+use Slim\Views\PhpRenderer;
+use Web3Auth\Service\AuthService;
+use Web3Auth\Service\WalletService;
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// Load environment variables
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->safeLoad();
+
 // Start session
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+session_start();
 
-use Web3Auth\Auth;
+// Initialize Slim app
+$app = AppFactory::create();
 
-$auth = new Auth();
+// Add routing middleware
+$app->addRoutingMiddleware();
+$app->addErrorMiddleware(true, true, true);
 
-if ($auth->isAuthenticated()) {
-    header('Location: /dashboard.php');
-    exit;
-}
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login with Web3 Wallet</title>
-    <meta name="description" content="Login with Web3 Wallets: MetaMask, Trust Wallet, Coinbase Wallet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/web3@4.16.0/dist/web3.min.js"></script>
-    <script src="/js/Web3App.js"></script>
-    <script src="/js/web3auth.js"></script>
-</head>
-<body>
-<div class="container text-center py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <h1 class="mb-2">Login with Web3 Wallet</h1>
-            <p class="lead mb-4">MetaMask, Trust Wallet, Coinbase Wallet</p>
+// Set up view renderer
+$renderer = new PhpRenderer(__DIR__ . '/../views');
 
-            <button
-                data-user-content-url="/dashboard.php"
-                data-user-auth-url="/api/auth.php"
-                class="login-web3-btn btn btn-primary btn-lg"
-            >
-                Login with Web3 Wallet
-            </button>
+// Set up services
+$authService = new AuthService();
+$walletService = new WalletService([
+        'network' => $_ENV['ETH_NETWORK'] ?? 'sepolia',
+]);
 
-            <div id="status-message" class="alert mt-4" style="display:none"></div>
-        </div>
-    </div>
-</div>
-</body>
-</html>
+// Define routes
+$app->get('/', function (Request $request, Response $response) use ($renderer, $authService) {
+    if ($authService->isAuthenticated()) {
+        return $response->withHeader('Location', '/dashboard')->withStatus(302);
+    }
+
+    return $renderer->render($response, 'login.php', [
+            'title' => 'Login with Web3 Wallet',
+            'network' => $_ENV['ETH_NETWORK'] ?? 'sepolia'
+    ]);
+});
+
+$app->get('/dashboard', function (Request $request, Response $response) use ($renderer, $authService, $walletService) {
+    if (!$authService->isAuthenticated()) {
+        return $response->withHeader('Location', '/')->withStatus(302);
+    }
+
+    $wallet = $authService->getWallet();
+    $walletDetails = $walletService->getWalletDetails($wallet);
+
+    return $renderer->render($response, 'dashboard.php', [
+            'title' => 'Web3 Wallet Dashboard',
+            'wallet' => $wallet,
+            'walletDetails' => $walletDetails,
+            'apiConfig' => $walletService->getApiConfig()
+    ]);
+});
+
+$app->post('/api/auth', function (Request $request, Response $response) use ($authService) {
+    $params = (array)$request->getParsedBody();
+
+    $result = $authService->authenticate([
+            'wallet' => $params['wallet'] ?? '',
+            'message' => $params['message'] ?? '',
+            'signature' => $params['signature'] ?? ''
+    ]);
+
+    $response->getBody()->write(json_encode($result));
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
+$app->get('/api/wallet', function (Request $request, Response $response) use ($authService, $walletService) {
+    if (!$authService->isAuthenticated()) {
+        $response->getBody()->write(json_encode([
+                'error' => 1,
+                'errorMessage' => 'Not authenticated'
+        ]));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
+    }
+
+    $wallet = $authService->getWallet();
+    $walletDetails = $walletService->getWalletDetails($wallet);
+
+    $response->getBody()->write(json_encode([
+            'error' => 0,
+            'wallet' => $wallet,
+            'walletDetails' => $walletDetails,
+            'apiConfig' => $walletService->getApiConfig()
+    ]));
+
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
+$app->get('/api/logout', function (Request $request, Response $response) use ($authService) {
+    $authService->logout();
+    return $response->withHeader('Location', '/')->withStatus(302);
+});
+
+// Run the app
+$app->run();
