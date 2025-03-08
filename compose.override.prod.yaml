@@ -1,0 +1,48 @@
+services:
+  traefik:
+    command:
+      - "--providers.docker=true"
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      - "--log.level=WARN"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http3"
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # for HTTP/3 UDP traffic
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - app-wallet-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN_BASE}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=${DASHBOARD_AUTH}"
+      - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
+
+  pets-app:
+    volumes:
+      - ./app:/app:rw
+    labels:
+      - "traefik.enable=true"
+      # HTTP to HTTPS redirect
+      - "traefik.http.routers.pets-http.rule=Host(`${DOMAIN_BASE}`)"
+      - "traefik.http.routers.pets-http.entrypoints=web"
+      # HTTPS configuration
+      - "traefik.http.routers.pets-secure.rule=Host(`${DOMAIN_BASE}`)"
+      - "traefik.http.routers.pets-secure.entrypoints=websecure"
+      - "traefik.http.routers.pets-secure.tls=true"
+      - "traefik.http.routers.pets-secure.tls.certresolver=myresolver"
+      - "traefik.http.services.pets.loadbalancer.server.port=80"
+    networks:
+      - app-wallet-network

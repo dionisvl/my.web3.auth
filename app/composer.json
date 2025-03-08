@@ -1,6 +1,6 @@
 {
-  "name": "web3wallet/php-auth",
-  "description": "Web3 Wallet integration with PHP",
+  "name": "web3auth/php-wallet-auth",
+  "description": "Web3 Wallet Authentication with PHP",
   "type": "project",
   "license": "MIT",
   "require": {
@@ -8,8 +8,8 @@
     "slim/slim": "^4.11",
     "slim/psr7": "^1.6",
     "slim/php-view": "^3.2",
-    "kornrunner/ethereum-address": "^0.2.0",
     "vlucas/phpdotenv": "^5.5",
+    "simplito/elliptic-php": "^1.0",
     "kornrunner/keccak": "^1.1"
   },
   "autoload": {

@@ -6,6 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupEventListeners();
 
+  const appElement = document.getElementById('app');
+  if (appElement && appElement.dataset.walletAddress) {
+    window.walletApp.wallet = appElement.dataset.walletAddress;
+  }
+
   if (document.getElementById('wallet-dashboard')) {
     initDashboard();
   }
@@ -40,13 +45,11 @@ async function handleWeb3Login(button) {
     return;
   }
 
-  // Display loading state
   button.classList.add('loading');
   button.textContent = 'Connecting...';
   showStatus('Connecting to wallet...', 'info');
 
   try {
-    // Initialize Web3 wallet connection
     const web3Data = await window.walletApp.connect();
     if (web3Data.error !== 0) {
       showStatus(web3Data.errorMessage || 'Error connecting to wallet', "error");
@@ -54,7 +57,6 @@ async function handleWeb3Login(button) {
       return;
     }
 
-    // Check if we have signature data
     if (!web3Data.signature) {
       showStatus('Failed to get signature from wallet', "error");
       resetButton(button);
@@ -63,7 +65,6 @@ async function handleWeb3Login(button) {
 
     showStatus('Wallet connected. Authenticating...', 'info');
 
-    // Get account and signature data
     const currentAccount = web3Data.accounts[0];
     const signMessage = web3Data.signature.message;
     const signResult = web3Data.signature.result;
@@ -102,14 +103,8 @@ async function initDashboard() {
   if (!walletAddress || !balanceElement) return;
 
   try {
-    // Connect wallet
-    const web3Data = await window.walletApp.connect();
-    if (web3Data.error !== 0) {
-      showStatus(web3Data.errorMessage || 'Error connecting to wallet', "error");
-      return;
-    }
-
-    // Get balance
+    window.walletApp.wallet = walletAddress.textContent.trim();
+    await window.walletApp.initProvider();
     await refreshWalletBalance();
   } catch (error) {
     showStatus('Error initializing dashboard: ' + error.message, 'error');

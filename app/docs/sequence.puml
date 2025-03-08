@@ -1,0 +1,63 @@
+@startuml Web3 Authentication Flow
+title Web3 Wallet Authentication Flow
+
+actor User
+participant "Frontend\n(Browser)" as Frontend
+participant "Web3 Wallet\n(MetaMask)" as Wallet
+participant "Backend\n(PHP Server)" as Backend
+database "Session" as Session
+
+== Authentication Flow ==
+
+User -> Frontend: Click "Login with Web3 Wallet"
+Frontend -> Wallet: Request account access
+Wallet --> User: Prompt to connect
+User -> Wallet: Approve connection
+Wallet --> Frontend: Return account address
+
+Frontend -> Wallet: Request message signing
+note right
+  Message contains domain and timestamp
+  for additional security
+end note
+Wallet --> User: Prompt to sign message
+User -> Wallet: Approve signature
+Wallet --> Frontend: Return signature
+
+Frontend -> Backend: POST /api/auth\n(wallet, message, signature)
+Backend -> Backend: Validate signature
+Backend -> Session: Store wallet address and auth data
+Session --> Backend: Confirm storage
+Backend --> Frontend: Return success response
+
+Frontend -> Frontend: Redirect to dashboard
+
+== Dashboard Access Flow ==
+
+User -> Frontend: Access dashboard page
+Frontend -> Backend: GET /dashboard
+Backend -> Session: Check authentication
+Session --> Backend: Return session data
+Backend -> Backend: Validate session
+Backend --> Frontend: Return dashboard view with wallet data
+
+Frontend -> Frontend: Initialize without signature
+note left
+  Reuse wallet address from session
+  to avoid repeated signature requests
+end note
+Frontend -> Wallet: Connect to provider only
+Wallet --> Frontend: Provider connection
+Frontend -> Wallet: Get wallet balance
+Wallet --> Frontend: Return balance
+Frontend -> Frontend: Display wallet data
+
+== Logout Flow ==
+
+User -> Frontend: Click "Logout"
+Frontend -> Backend: GET /api/logout
+Backend -> Session: Clear wallet data
+Session --> Backend: Confirm cleared
+Backend --> Frontend: Redirect to login page
+
+@enduml

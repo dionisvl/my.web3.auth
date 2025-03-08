@@ -6,7 +6,7 @@
     <title><?= $title ?? 'Web3 Wallet' ?></title>
     <meta name="description" content="Login with Web3 Wallets: MetaMask, Trust Wallet, Coinbase Wallet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
     <script src="/js/wallet.js"></script>
     <script src="/js/app.js"></script>
 </head>

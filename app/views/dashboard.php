@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= $title ?? 'Web3 Dashboard' ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
     <script src="/js/wallet.js"></script>
     <script src="/js/app.js"></script>
 </head>
 <body>
 <div id="app"
-     data-network="<?= $apiConfig['network'] ?? 'mainnet' ?>">
+     data-network="<?= $apiConfig['network'] ?? 'mainnet' ?>"
+     data-wallet-address="<?= htmlspecialchars($wallet) ?>">
 
     <div class="container py-5" id="wallet-dashboard">
         <div class="row">
@@ -19,7 +20,7 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="m-0">Web3 Wallet Dashboard</h3>
-                        <a href="<?= $config['routes']['logout'] ?>" class="btn btn-outline-secondary btn-sm">Logout</a>
+                        <a href="/api/logout" class="btn btn-outline-secondary btn-sm">Logout</a>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -57,5 +58,16 @@
         <div id="status-message" class="alert mt-4" style="display:none"></div>
     </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const appElement = document.getElementById('app');
+    if (appElement && appElement.dataset.walletAddress) {
+      if (window.walletApp) {
+        window.walletApp.wallet = appElement.dataset.walletAddress;
+      }
+    }
+  });
+</script>
 </body>
 </html>

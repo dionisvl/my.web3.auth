@@ -1,0 +1,25 @@
+services:
+  traefik:
+    image: traefik:v3.2.5
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--tracing=true"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - app-wallet-network
+
+  pets-app:
+    build:
+      context: ./.docker/php-simple
+      dockerfile: ./Dockerfile
+    env_file:
+      - path: ./.env
+        required: true
+    networks:
+      - app-wallet-network
+
+networks:
+  app-wallet-network:
+    driver: bridge

@@ -30,9 +30,9 @@ A modern PHP application for Web3 wallet authentication and balance checking usi
    cp .env.example .env
    ```
 
-4. Configure your web server to point to the `public` directory or use PHP's built-in server:
+4. Rum server
    ```
-   php -S localhost:8000 -t public
+   make up
    ```
 
 ## Usage

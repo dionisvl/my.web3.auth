@@ -1,0 +1,25 @@
+services:
+  traefik:
+    command:
+      - "--providers.docker=true"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+    networks:
+      - app-wallet-network
+
+  pets-app:
+    volumes:
+      - ./app:/app:rw
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pets.rule=Host(`${DOMAIN_BASE}`)"
+      - "traefik.http.routers.pets.entrypoints=web"
+      - "traefik.http.services.pets.loadbalancer.server.port=80"
