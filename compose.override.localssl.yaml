@@ -14,7 +14,7 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./certs:/certs"
-      - "./config:/etc/traefik/config"
+      - "./.docker/traefik/config:/etc/traefik/config"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"

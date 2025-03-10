@@ -18,7 +18,8 @@ class WalletService
         $networks = [
             'mainnet' => 1,
             'goerli' => 5,
-            'sepolia' => 11155111
+            'sepolia' => 11155111,
+            'avax' => 43114, // Avalanche C-Chain
         ];
 
         return [

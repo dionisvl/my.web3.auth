@@ -30,6 +30,7 @@ $renderer = new PhpRenderer(__DIR__ . '/../views');
 
 // Set up services
 $authService = new AuthService();
+
 $walletService = new WalletService([
         'network' => $_ENV['ETH_NETWORK'] ?? 'sepolia',
 ]);
