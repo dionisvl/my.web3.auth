@@ -10,14 +10,19 @@ class WalletApp {
 
   async initProvider() {
     try {
-      if (!window.ethereum) {
+      if (window.ethereum) {
+        this.provider = new ethers.BrowserProvider(window.ethereum);
+      } else if (window.trustwallet) {
+        this.provider = new ethers.BrowserProvider(window.trustwallet);
+      } else if (window.web3) {
+        this.provider = new ethers.BrowserProvider(window.web3.currentProvider);
+      } else {
         return {
           error: 1,
           errorMessage: "Web3 wallet not found. Please install MetaMask, Trust Wallet, or Coinbase Wallet."
         };
       }
 
-      this.provider = new ethers.BrowserProvider(window.ethereum);
       return { error: 0 };
     } catch (error) {
       return {
@@ -29,16 +34,23 @@ class WalletApp {
 
   async connect() {
     try {
-      if (!window.ethereum) {
+      let provider;
+      if (window.ethereum) {
+        provider = window.ethereum;
+      } else if (window.trustwallet) {
+        provider = window.trustwallet;
+      } else if (window.web3) {
+        provider = window.web3.currentProvider;
+      } else {
         return {
           error: 1,
           errorMessage: "Web3 wallet not found. Please install MetaMask, Trust Wallet, or Coinbase Wallet."
         };
       }
 
-      this.provider = new ethers.BrowserProvider(window.ethereum);
+      this.provider = new ethers.BrowserProvider(provider);
 
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
 
       if (!accounts || accounts.length === 0) {
         return {

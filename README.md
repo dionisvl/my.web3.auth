@@ -1,4 +1,4 @@
-# Web3 Wallet Authentication with PHP
+# Web3 Wallet Auth with PHP
 
 A modern PHP application for Web3 wallet authentication and balance checking using Ethers.js.
 

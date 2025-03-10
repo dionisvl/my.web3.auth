@@ -1,0 +1,4 @@
+tls:
+  certificates:
+    - certFile: /certs/pets.local.crt
+      keyFile: /certs/pets.local.key
