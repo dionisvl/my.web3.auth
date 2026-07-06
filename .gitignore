@@ -2,3 +2,6 @@
 vendor
 composer.lock
 .env
+bin/
+/server
+
