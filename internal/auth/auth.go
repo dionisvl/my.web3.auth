@@ -19,29 +19,24 @@ import (
 const (
 	sessionName = "web3auth"
 
-	// nonceTTL bounds how long an issued login challenge stays valid, limiting
-	// the replay window for a captured signature.
+	// nonceTTL bounds the replay window for a captured signature.
 	nonceTTL = 5 * time.Minute
 )
 
-// addressRe matches a checksummed-or-not 0x Ethereum address.
 var addressRe = regexp.MustCompile(`^0x[a-fA-F0-9]{40}$`)
 
-// Result mirrors the JSON contract returned by the PHP AuthService:
-// {"error":0} on success, {"error":1,"errorMessage":"..."} on failure.
+// Result is the JSON contract: {"error":0} or {"error":1,"errorMessage":...}.
 type Result struct {
 	Error        int    `json:"error"`
 	ErrorMessage string `json:"errorMessage,omitempty"`
 }
 
-// Service handles Web3 signature auth and session state.
 type Service struct {
 	store *sessions.CookieStore
 }
 
-// New builds a Service backed by a cookie session store keyed by sessionKey.
-// secure marks the session cookie Secure (send only over HTTPS) — enable it in
-// production behind TLS/Traefik.
+// New builds a Service backed by a cookie session store. secure marks the
+// cookie Secure (HTTPS only) — enable in production behind TLS.
 func New(sessionKey []byte, secure bool) *Service {
 	store := sessions.NewCookieStore(sessionKey)
 	store.Options = &sessions.Options{
@@ -54,23 +49,20 @@ func New(sessionKey []byte, secure bool) *Service {
 	return &Service{store: store}
 }
 
-// Challenge is a server-issued login nonce: the exact message the wallet must
-// sign, plus a CSRF token for the subsequent authenticated requests.
 type Challenge struct {
 	Message   string `json:"message"`
 	CSRFToken string `json:"csrfToken"`
 }
 
-// IssueChallenge generates a fresh single-use nonce message and CSRF token,
-// stores them in the session, and returns them to the client. The client must
-// sign Message verbatim; Authenticate then checks it matches and is unexpired.
+// IssueChallenge stores a fresh single-use nonce + CSRF token in the session
+// and returns them. The client must sign Message verbatim.
 func (s *Service) IssueChallenge(w http.ResponseWriter, r *http.Request, host string) (Challenge, error) {
 	nonce := randomHex(16)
 	csrf := randomHex(32)
 	issued := time.Now()
 
-	// The message binds host + timestamp + nonce so a signature is meaningful
-	// only for this site and this single challenge.
+	// Bind host + timestamp + nonce so a signature is valid only for this site
+	// and this single challenge.
 	message := fmt.Sprintf("Sign this message to authenticate on %s at %d (nonce: %s)",
 		host, issued.UnixMilli(), nonce)
 
@@ -85,7 +77,6 @@ func (s *Service) IssueChallenge(w http.ResponseWriter, r *http.Request, host st
 	return Challenge{Message: message, CSRFToken: csrf}, nil
 }
 
-// CSRFToken returns the CSRF token stored in the session, or "".
 func (s *Service) CSRFToken(r *http.Request) string {
 	sess, _ := s.store.Get(r, sessionName)
 	if v, ok := sess.Values["csrf_token"].(string); ok {
@@ -94,7 +85,6 @@ func (s *Service) CSRFToken(r *http.Request) string {
 	return ""
 }
 
-// CheckCSRF constant-time compares the submitted token to the session token.
 func (s *Service) CheckCSRF(r *http.Request, token string) bool {
 	want := s.CSRFToken(r)
 	if want == "" || token == "" {
@@ -103,8 +93,8 @@ func (s *Service) CheckCSRF(r *http.Request, token string) bool {
 	return subtle.ConstantTimeCompare([]byte(want), []byte(token)) == 1
 }
 
-// Authenticate verifies the signature and, on success, stores the wallet in the
-// session. Input/behaviour matches the PHP implementation.
+// Authenticate verifies the signature against the pending challenge and, on
+// success, stores the wallet in the session.
 func (s *Service) Authenticate(w http.ResponseWriter, r *http.Request, walletAddr, message, signature string) Result {
 	if walletAddr == "" || message == "" || signature == "" {
 		return Result{Error: 1, ErrorMessage: "Missing required parameters"}
@@ -114,8 +104,8 @@ func (s *Service) Authenticate(w http.ResponseWriter, r *http.Request, walletAdd
 		return Result{Error: 1, ErrorMessage: "Invalid wallet address format"}
 	}
 
-	// Replay/CSRF protection: the signed message must be the exact challenge we
-	// issued to this session, it must not be expired, and it is single-use.
+	// The signed message must match the challenge issued to this session and
+	// not be expired; it is consumed below (single-use).
 	sess, _ := s.store.Get(r, sessionName)
 	pending, _ := sess.Values["pending_message"].(string)
 	issued, _ := sess.Values["pending_issued"].(int64)
@@ -137,7 +127,6 @@ func (s *Service) Authenticate(w http.ResponseWriter, r *http.Request, walletAdd
 		return Result{Error: 1, ErrorMessage: "Invalid signature"}
 	}
 
-	// Consume the nonce so the same signature cannot be replayed.
 	delete(sess.Values, "pending_message")
 	delete(sess.Values, "pending_issued")
 	sess.Values["wallet"] = walletAddr
@@ -150,12 +139,10 @@ func (s *Service) Authenticate(w http.ResponseWriter, r *http.Request, walletAdd
 	return Result{Error: 0}
 }
 
-// IsAuthenticated reports whether the current session has a wallet set.
 func (s *Service) IsAuthenticated(r *http.Request) bool {
 	return s.GetWallet(r) != ""
 }
 
-// GetWallet returns the wallet stored in the session, or "".
 func (s *Service) GetWallet(r *http.Request) string {
 	sess, _ := s.store.Get(r, sessionName)
 	if v, ok := sess.Values["wallet"].(string); ok {
@@ -164,7 +151,6 @@ func (s *Service) GetWallet(r *http.Request) string {
 	return ""
 }
 
-// Logout clears the session (equivalent to unsetting the PHP session keys).
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	sess, _ := s.store.Get(r, sessionName)
 	sess.Options.MaxAge = -1
@@ -172,12 +158,9 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	_ = sess.Save(r, w)
 }
 
-// VerifySignature recovers the signer address from an EIP-191 personal_sign
-// signature and compares it (case-insensitively) to the claimed address.
-//
-// This replaces the PHP simplito/elliptic-php + kornrunner/keccak logic. The
-// go-ethereum accounts.TextHash applies the exact "\x19Ethereum Signed
-// Message:\n<len>" prefix + keccak256 that MetaMask/ethers use.
+// VerifySignature recovers the signer from an EIP-191 personal_sign signature
+// and compares it (case-insensitively) to the claimed address. accounts.TextHash
+// applies the "\x19Ethereum Signed Message:\n<len>" prefix + keccak256.
 func VerifySignature(message, sigHex, address string) (bool, error) {
 	if !addressRe.MatchString(address) {
 		return false, nil
@@ -187,13 +170,11 @@ func VerifySignature(message, sigHex, address string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// r(32) + s(32) + v(1)
-	if len(sig) != 65 {
+	if len(sig) != 65 { // r(32) + s(32) + v(1)
 		return false, nil
 	}
 
-	// Normalize recovery id: Ethereum uses 27/28, secp256k1 recover wants 0/1.
-	// Same adjustment the PHP code performed on v.
+	// Ethereum uses recovery id 27/28; secp256k1 recover wants 0/1.
 	if sig[64] >= 27 {
 		sig[64] -= 27
 	}
@@ -201,23 +182,16 @@ func VerifySignature(message, sigHex, address string) (bool, error) {
 		return false, nil
 	}
 
-	hash := accounts.TextHash([]byte(message))
-
-	pubKey, err := crypto.SigToPub(hash, sig)
+	pubKey, err := crypto.SigToPub(accounts.TextHash([]byte(message)), sig)
 	if err != nil {
 		return false, err
 	}
-
-	recovered := crypto.PubkeyToAddress(*pubKey)
-	return strings.EqualFold(recovered.Hex(), address), nil
+	return strings.EqualFold(crypto.PubkeyToAddress(*pubKey).Hex(), address), nil
 }
 
-// randomHex returns n cryptographically random bytes as a hex string.
 func randomHex(n int) string {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
-		// crypto/rand failing is fatal-grade; panic surfaces it rather than
-		// silently issuing a predictable token.
 		panic("crypto/rand failed: " + err.Error())
 	}
 	return hex.EncodeToString(b)

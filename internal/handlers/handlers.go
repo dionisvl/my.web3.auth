@@ -12,14 +12,12 @@ import (
 	"github.com/dionisvl/my.web3.auth/web"
 )
 
-// Handlers wires the auth/wallet services and parsed templates.
 type Handlers struct {
 	auth      *auth.Service
 	wallet    *wallet.Service
 	templates *template.Template
 }
 
-// New parses the embedded templates and returns a Handlers.
 func New(authSvc *auth.Service, walletSvc *wallet.Service) (*Handlers, error) {
 	tmpl, err := template.ParseFS(web.Templates, "templates/*.html")
 	if err != nil {
@@ -28,8 +26,7 @@ func New(authSvc *auth.Service, walletSvc *wallet.Service) (*Handlers, error) {
 	return &Handlers{auth: authSvc, wallet: walletSvc, templates: tmpl}, nil
 }
 
-// Register attaches all routes to the given mux. Requires Go 1.22+ for the
-// method+path pattern syntax.
+// Register attaches all routes. Method+path patterns require Go 1.22+.
 func (h *Handlers) Register(mux *http.ServeMux) error {
 	staticFS, err := fs.Sub(web.Static, "static")
 	if err != nil {
@@ -47,7 +44,6 @@ func (h *Handlers) Register(mux *http.ServeMux) error {
 	return nil
 }
 
-// GET / — redirect to /dashboard if authed, else render login.
 func (h *Handlers) index(w http.ResponseWriter, r *http.Request) {
 	if h.auth.IsAuthenticated(r) {
 		http.Redirect(w, r, "/dashboard", http.StatusFound)
@@ -59,7 +55,6 @@ func (h *Handlers) index(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /dashboard — require auth, else redirect to /.
 func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
 	if !h.auth.IsAuthenticated(r) {
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -75,7 +70,6 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /api/nonce — issue a single-use signing challenge + CSRF token.
 func (h *Handlers) apiNonce(w http.ResponseWriter, r *http.Request) {
 	host := r.Host
 	if h, _, err := net.SplitHostPort(host); err == nil {
@@ -95,7 +89,6 @@ func (h *Handlers) apiNonce(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /api/auth — verify signature, set session.
 func (h *Handlers) apiAuth(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		writeJSON(w, http.StatusOK, auth.Result{Error: 1, ErrorMessage: "Invalid form data"})
@@ -110,7 +103,6 @@ func (h *Handlers) apiAuth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-// GET /api/wallet — JSON wallet details, 401 if not authed.
 func (h *Handlers) apiWallet(w http.ResponseWriter, r *http.Request) {
 	if !h.auth.IsAuthenticated(r) {
 		writeJSON(w, http.StatusUnauthorized, map[string]any{
@@ -128,7 +120,6 @@ func (h *Handlers) apiWallet(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /api/logout — clear session, redirect to /. CSRF-protected.
 func (h *Handlers) logout(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil || !h.auth.CheckCSRF(r, r.PostFormValue("csrf_token")) {
 		http.Error(w, "invalid CSRF token", http.StatusForbidden)

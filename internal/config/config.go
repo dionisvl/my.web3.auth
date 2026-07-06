@@ -8,7 +8,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config holds runtime configuration loaded from environment variables.
 type Config struct {
 	Port         string
 	EthNetwork   string
@@ -16,10 +15,8 @@ type Config struct {
 	CookieSecure bool
 }
 
-// Load reads configuration from the environment. It loads a .env file if
-// present (dev convenience); in production real environment variables win.
+// Load reads config from the environment, loading a .env file if present.
 func Load() *Config {
-	// Best-effort: ignore error so missing .env is not fatal (like PHP safeLoad).
 	_ = godotenv.Load()
 
 	cfg := &Config{
@@ -31,8 +28,8 @@ func Load() *Config {
 	if key := os.Getenv("SESSION_KEY"); key != "" {
 		cfg.SessionKey = []byte(key)
 	} else {
-		// No persistent key configured: generate an ephemeral one so the app
-		// still runs in dev. Sessions won't survive a restart — warn loudly.
+		// No persistent key: use an ephemeral one so dev still works, but
+		// sessions reset on restart.
 		cfg.SessionKey = randomKey(32)
 		log.Println("WARNING: SESSION_KEY not set, using an ephemeral random key (sessions reset on restart)")
 	}
