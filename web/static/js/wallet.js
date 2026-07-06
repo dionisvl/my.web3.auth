@@ -116,17 +116,28 @@ class WalletApp {
 
   async getSignature(address) {
     try {
-      const timestamp = new Date().getTime();
-      const domain = window.location.hostname;
-      const message = `Sign this message to authenticate on ${domain} at ${timestamp}`;
+      // Fetch a single-use, server-issued challenge (nonce + expiry) so a
+      // captured signature cannot be replayed. The wallet signs it verbatim.
+      const resp = await fetch('/api/nonce', {
+        credentials: 'same-origin'
+      });
+      const challenge = await resp.json();
+      if (!challenge || challenge.error !== 0 || !challenge.message) {
+        return {
+          error: 1,
+          errorMessage: challenge.errorMessage || "Failed to obtain authentication challenge"
+        };
+      }
 
+      const message = challenge.message;
       const signature = await this.signer.signMessage(message);
 
       return {
         error: 0,
         data: {
           message: message,
-          result: signature
+          result: signature,
+          csrfToken: challenge.csrfToken
         }
       };
     } catch (error) {

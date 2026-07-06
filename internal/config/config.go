@@ -10,9 +10,10 @@ import (
 
 // Config holds runtime configuration loaded from environment variables.
 type Config struct {
-	Port       string
-	EthNetwork string
-	SessionKey []byte
+	Port         string
+	EthNetwork   string
+	SessionKey   []byte
+	CookieSecure bool
 }
 
 // Load reads configuration from the environment. It loads a .env file if
@@ -22,8 +23,9 @@ func Load() *Config {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		Port:       getEnv("APP_PORT", "8080"),
-		EthNetwork: getEnv("ETH_NETWORK", "sepolia"),
+		Port:         getEnv("APP_PORT", "8080"),
+		EthNetwork:   getEnv("ETH_NETWORK", "sepolia"),
+		CookieSecure: getEnv("COOKIE_SECURE", "false") == "true",
 	}
 
 	if key := os.Getenv("SESSION_KEY"); key != "" {

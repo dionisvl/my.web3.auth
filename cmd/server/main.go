@@ -14,7 +14,7 @@ import (
 func main() {
 	cfg := config.Load()
 
-	authSvc := auth.New(cfg.SessionKey)
+	authSvc := auth.New(cfg.SessionKey, cfg.CookieSecure)
 	walletSvc := wallet.New(cfg.EthNetwork)
 
 	h, err := handlers.New(authSvc, walletSvc)
