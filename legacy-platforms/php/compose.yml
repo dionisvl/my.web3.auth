@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.6
+    image: traefik:v3.2.5
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedByDefault=false"
@@ -12,10 +12,8 @@ services:
 
   pets-app:
     build:
-      context: .
+      context: ./.docker/php-simple
       dockerfile: ./Dockerfile
-    environment:
-      - APP_PORT=8080
     env_file:
       - path: ./.env
         required: true

@@ -16,8 +16,10 @@ services:
       - app-wallet-network
 
   pets-app:
+    volumes:
+      - ./app:/app:rw
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pets.rule=Host(`${DOMAIN_BASE}`)"
       - "traefik.http.routers.pets.entrypoints=web"
-      - "traefik.http.services.pets.loadbalancer.server.port=8080"
+      - "traefik.http.services.pets.loadbalancer.server.port=80"
