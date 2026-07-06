@@ -61,16 +61,5 @@
         <div id="status-message" class="alert mt-4" style="display:none"></div>
     </div>
 </div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const appElement = document.getElementById('app');
-    if (appElement && appElement.dataset.walletAddress) {
-      if (window.walletApp) {
-        window.walletApp.wallet = appElement.dataset.walletAddress;
-      }
-    }
-  });
-</script>
 </body>
 </html>

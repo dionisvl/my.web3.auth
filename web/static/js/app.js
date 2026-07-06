@@ -36,7 +36,6 @@ function setupEventListeners() {
 }
 
 async function handleWeb3Login(button) {
-  const statusElement = document.getElementById('status-message');
   const userContentUrl = button.dataset.userContentUrl;
   const web3AuthUrl = button.dataset.userAuthUrl;
 

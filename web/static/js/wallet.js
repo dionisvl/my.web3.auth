@@ -63,7 +63,7 @@ class WalletApp {
 
       this.signer = await this.provider.getSigner();
 
-      const signature = await this.getSignature(this.wallet);
+      const signature = await this.getSignature();
       if (signature.error !== 0) {
         return signature;
       }
@@ -114,13 +114,19 @@ class WalletApp {
     }
   }
 
-  async getSignature(address) {
+  async getSignature() {
     try {
       // Fetch a single-use, server-issued challenge (nonce + expiry) so a
       // captured signature cannot be replayed. The wallet signs it verbatim.
       const resp = await fetch('/api/nonce', {
         credentials: 'same-origin'
       });
+      if (!resp.ok) {
+        return {
+          error: 1,
+          errorMessage: `Failed to obtain authentication challenge (HTTP ${resp.status})`
+        };
+      }
       const challenge = await resp.json();
       if (!challenge || challenge.error !== 0 || !challenge.message) {
         return {
